@@ -1,0 +1,61 @@
+@base = http://localhost:4000/api
+
+# Expense routes need a session. The REST Client extension keeps the cookie between requests.
+
+### Request a login code (printed in the server console if SMTP isn't set up)
+POST {{base}}/auth/request-otp
+Content-Type: application/json
+
+{ "email": "you@example.com" }
+
+### Verify the code and log in
+POST {{base}}/auth/verify-otp
+Content-Type: application/json
+
+{ "email": "you@example.com", "code": "123456" }
+
+### Who am I?
+GET {{base}}/auth/me
+
+### Log out
+POST {{base}}/auth/logout
+
+### Delete account and ALL its entries (email must match the logged-in account)
+DELETE {{base}}/auth/account
+Content-Type: application/json
+
+{ "email": "you@example.com" }
+
+### Create an expense
+POST {{base}}/expenses
+Content-Type: application/json
+
+{
+  "amountCents": 1850,
+  "category": "food",
+  "description": "Lunch",
+  "date": "2026-11-03"
+}
+
+### List expenses
+GET {{base}}/expenses
+
+### Invalid expense (should return 400)
+POST {{base}}/expenses
+Content-Type: application/json
+
+{
+  "amountCents": -5,
+  "category": "pizza"
+}
+
+### Update (paste an _id from the list)
+PATCH {{base}}/expenses/PASTE_ID_HERE
+Content-Type: application/json
+
+{
+  "amountCents": 2200
+}
+
+### Delete
+DELETE {{base}}/expenses/PASTE_ID_HERE
