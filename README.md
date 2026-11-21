@@ -8,11 +8,11 @@ Personal expense tracker: React (Vite) client + Express + MongoDB server.
 npm run setup        # installs root, server and client dependencies
 ```
 
-`server/.env` needs:
+Then set up a database (next section) and create `server/.env` with:
 
 ```
 PORT=4000
-MONGODB_URI=mongodb+srv://...
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/expense-tracker?retryWrites=true&w=majority
 CLIENT_URL=http://localhost:5173
 
 # Email delivery for login codes (optional in development, see below)
@@ -25,6 +25,74 @@ MAIL_FROM="Expense Tracker <you@gmail.com>"
 # Set to true only if you serve the app over HTTPS
 COOKIE_SECURE=false
 ```
+
+`server/.env` is git-ignored. Never commit it, because it holds your database and email passwords.
+Restart the server after changing it: `npm run dev` reloads on code changes, but not on `.env` changes.
+
+## Database setup
+
+The app uses MongoDB. You don't need to create collections, tables or a schema: the server
+creates the database, collections (`users`, `expenses`, `sessions`, `otps`) and indexes
+automatically the first time it runs.
+
+### Option A: MongoDB Atlas (free cloud database, recommended)
+
+1. Sign up at [mongodb.com/cloud/atlas/register](https://www.mongodb.com/cloud/atlas/register).
+2. **Create a cluster.** Choose the free **M0** tier and pick the region closest to you
+   (e.g. AWS / Sydney `ap-southeast-2`).
+3. **Create a database user.** Go to **Security → Database Access → Add New Database User**,
+   choose *Password* authentication, and give it the **Read and write to any database** role.
+   Avoid special characters like `@ : / ? # %` in the password; if you do use them, they must be
+   [URL-encoded](https://www.mongodb.com/docs/manual/reference/connection-string/#std-label-connections-standard-connection-string-format)
+   in the connection string.
+4. **Allow your network.** Go to **Security → Network Access → Add IP Address**:
+   - **Add Current IP Address** is the safest option. If your home IP changes later, the server will
+     fail to connect until you add the new one.
+   - Alternatively, `0.0.0.0/0` allows any IP. It's more convenient, but your password is then the only protection.
+5. **Get the connection string.** Go to **Database → Connect → Drivers → Node.js** and copy the string.
+   It looks like:
+   ```
+   mongodb+srv://<user>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
+   ```
+6. Paste it as `MONGODB_URI` in `server/.env`. Replace `<password>` with your real password, and
+   add the database name `expense-tracker` after `.mongodb.net/`:
+   ```
+   MONGODB_URI=mongodb+srv://me:s3cret@cluster0.abcde.mongodb.net/expense-tracker?retryWrites=true&w=majority
+   ```
+   Without a database name, MongoDB stores everything in a database called `test`.
+
+### Option B: MongoDB on your own PC
+
+1. Install [MongoDB Community Server](https://www.mongodb.com/try/download/community) and keep
+   "Install MongoDB as a Service" ticked, so it starts automatically with Windows.
+2. In `server/.env`:
+   ```
+   MONGODB_URI=mongodb://127.0.0.1:27017/expense-tracker
+   ```
+
+Your data then lives only on this PC, so back it up yourself
+(e.g. with [`mongodump`](https://www.mongodb.com/docs/database-tools/mongodump/)).
+
+### Check that it works
+
+Run `npm run dev` (or `npm run app`). You should see:
+
+```
+✅ Connected to MongoDB
+```
+
+If it fails instead:
+
+| Error contains                                   | Fix                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `MONGODB_URI is missing from .env`               | `server/.env` doesn't exist or has a typo in the variable name            |
+| `bad auth` / `Authentication failed`             | Wrong username or password in the URI (or special characters not encoded) |
+| `Could not connect to any servers` / timeout     | Atlas: your current IP isn't in **Network Access**                        |
+| `ECONNREFUSED 127.0.0.1:27017`                   | Local MongoDB isn't running. Start the "MongoDB" service in Windows Services |
+| `querySrv ENOTFOUND`                             | Cluster address is wrong, or your network/DNS blocks `mongodb+srv` lookups |
+
+To browse your data, use [MongoDB Compass](https://www.mongodb.com/products/compass) (paste the
+same connection string) or **Browse Collections** in Atlas.
 
 ## Accounts & login
 
